@@ -5,7 +5,7 @@ import os
 import csv
 import sqlite3
 import datetime
-
+from pytz import timezone
 from werkzeug.utils import redirect
 
 app = Flask(__name__)
@@ -20,9 +20,20 @@ def index():
   if "username" not in session:
     return redirect('login')
   c = con.cursor()
-  c.execute("select * from log order by score desc, time")
+  c.execute("select id, name, MAX(score), time from log group by name order by score desc, time")
   rows = c.fetchall();
   return render_template('index.html', rows=rows)
+
+
+@app.route('/mypage')
+def mypage():
+  c = con.cursor()
+  print(len(session['username']))
+  name = session['username']
+  print(session['username'])
+  c.execute("select * from log where name = ? order by score desc, time", (name,))
+  rows = c.fetchall();
+  return render_template('mypage.html', rows=rows)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -54,7 +65,7 @@ def fileupload():
   c.execute("select * from log where name = ? and score = ?", (name,str(round(cnt/answernum,5))))
   data = c.fetchall()
   if len(data) == 0:
-    c.execute("INSERT INTO log (name,score,time) VALUES (?,?,?)",(name,str(round(cnt/answernum,5)),str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))) )
+    c.execute("INSERT INTO log (name,score,time) VALUES (?,?,?)",(name,str(round(cnt/answernum,5)),str(datetime.datetime.now(timezone('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S'))) )
     con.commit()
   return render_template("result.html", score=str(round(cnt/answernum,5)))
 
